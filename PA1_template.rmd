@@ -1,0 +1,142 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+
+getwd()
+
+# **Tarea Número 1 - REPRODUCIBLE RESEARCH**
+
+## **Leo la data, realizo estadísticos descriptivos y veo como esta estructurado **
+
+```{r simulation,echo=TRUE}
+
+actividad <- read.csv("C:/Users/juana/Documents/activity.csv")
+
+summary(actividad)
+
+head(actividad)
+
+```
+
+
+## **¿Cuál es el número total medio de pasos dados por día?**
+### Calcule el número total de pasos dados por día.
+
+```{r}
+
+NumeroTotalMedioPasosXDia <- aggregate(steps ~ date, actividad, sum, na.rm=TRUE)
+
+```
+
+### Haga un histograma del número total de pasos dados cada día.
+
+```{r}
+
+hist(NumeroTotalMedioPasosXDia$steps)
+
+
+```
+
+### Calcule e informe la media y la mediana del número total de pasos dados por día.
+
+```{r}
+
+mean(NumeroTotalMedioPasosXDia$steps)
+
+
+median(NumeroTotalMedioPasosXDia$steps)
+
+
+
+```
+
+## **¿Cuál es el patrón de actividad diaria promedio?**
+
+### Haga una gráfica de series de tiempo (es decir tipo = "l") del intervalo de 5 minutos (eje x) y el número medio de pasos dados, promediado en todos los días (eje y)
+
+```{r}
+
+IntervaloPasos<-aggregate(steps~interval, data=actividad, mean, na.rm=TRUE)
+plot(steps~interval, data=IntervaloPasos, type="l")
+
+```
+
+### ¿Qué intervalo de 5 minutos, en promedio en todos los días del conjunto de datos, contiene el número máximo de pasos?
+
+```{r}
+
+IntervaloPasos[which.max(IntervaloPasos$steps),]$interval
+
+```
+
+## **Imputación de valores perdidos**
+
+### Calcule e informe el número total de valores faltantes en el conjunto de datos (es decir, el número total de filas con \ color {rojo} {\ verbo | NA |}N / As)
+
+```{r}
+sum(is.na(actividad$steps))
+
+```
+
+### Diseñe una estrategia para completar todos los valores faltantes en el conjunto de datos. La estrategia no necesita ser sofisticada. Por ejemplo, puede usar la media / mediana de ese día, o la media de ese intervalo de 5 minutos, etc.
+
+```{r}
+MediaPasosPorIntervalo<-function(interval){
+    IntervaloPasos[IntervaloPasos$interval==interval,]$steps
+}
+```
+
+### Cree un nuevo conjunto de datos que sea igual al conjunto de datos original pero con los datos faltantes completados.
+
+```{r}
+actividaddatosfaltantes<-actividad
+for(i in 1:nrow(actividaddatosfaltantes)){
+    if(is.na(actividaddatosfaltantes[i,]$steps)){
+        actividaddatosfaltantes[i,]$steps <- MediaPasosPorIntervalo(actividaddatosfaltantes[i,]$interval)
+    }
+}
+```
+
+### Haga un histograma del número total de pasos dados cada día y Calcule e informe la  media  y la  mediana del  número total de pasos dados por día. ¿Estos valores difieren de las estimaciones de la primera parte de la tarea? ¿Cuál es el impacto de imputar los datos faltantes a las estimaciones del número total diario de pasos?
+
+```{r}
+pasospordiafaltantes <- aggregate(steps ~ date, data=actividaddatosfaltantes, sum)
+hist(pasospordiafaltantes$steps)
+```
+```{r}
+mediapasospordiafaltantes <- mean(pasospordiafaltantes$steps)
+mediapasospordiafaltantes
+medianapasospordiafaltantes <- median(pasospordiafaltantes$steps)
+medianapasospordiafaltantes
+```
+
+## **¿Existen diferencias en los patrones de actividad entre los días de semana y los fines de semana?**
+
+### Cree una nueva variable de factor en el conjunto de datos con dos niveles: "día de la semana" y "fin de semana", que indican si una fecha determinada es un día de la semana o un día de fin de semana.
+
+```{r}
+actividad$date <- as.Date(strptime(actividad$date, format="%Y-%m-%d"))
+actividad$day <- weekdays(actividad$date)
+for (i in 1:nrow(actividad)) {
+    if (actividad[i,]$day %in% c("Saturday","Sunday")) {
+        actividad[i,]$day<-"weekend"
+    }
+    else{
+        actividad[i,]$day<-"weekday"
+    }
+}
+pasosdia <- aggregate(actividad$steps ~ actividad$interval + actividad$day, actividad, mean)
+```
+
+### Haga un diagrama de panel que contenga un diagrama de serie de tiempo (es decir, \ color {rojo} {\ verb | type = "l" |}tipo = "l") del intervalo de 5 minutos (eje x) y el número medio de pasos dados, promediado entre todos los días de la semana o los días de fin de semana (eje y). Consulte el archivo README en el repositorio de GitHub para ver un ejemplo de cómo debería verse este gráfico con datos simulados.
+
+
+```{r}
+names(pasosdia) <- c("interval", "day", "steps")
+library(lattice)
+xyplot(steps ~ interval | day, pasosdia, type = "l", layout = c(1, 2), 
+    xlab = "Interval", ylab = "Number of steps")
+```
+
